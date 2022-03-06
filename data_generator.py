@@ -170,7 +170,7 @@ def main(argv):
             X = generate_random_graph(v, p_t, p_h)
 
     # Save the graph data in CSV format
-    with open('demofile.dat', 'w') as f:
+    with open('inputs/graph_file.dat', 'w') as f:
         write = csv.writer(f)
         write.writerow(str(v))
         write.writerow('')
