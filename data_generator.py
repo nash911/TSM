@@ -6,6 +6,23 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
+def generate_complete_graph(v, p_t, p_h):
+    # A random integer matrix of size [v x v] representing a completed directed graph
+    X = np.random.choice(list(range(4)), size=(v, v), p=[1 / 4] * 4)
+
+    # Make diagonals (hotel cost) strictly positive
+    np.fill_diagonal(X, np.abs(np.diag(X)))
+
+    # Randomly choose some travels to be free with probability p_t
+    free_mask = np.random.choice([0, 1], size=(v, v), p=[p_t, (1 - p_t)])
+
+    # Replace diagonals of the free_mask to make randomly chosen hotel costs free with prob. p_h
+    np.fill_diagonal(free_mask, np.random.choice([0, 1], size=(v), p=[p_h, (1 - p_h)]))
+
+    # Apply free travel/accommadation mask and return
+    return X * free_mask
+
+
 def generate_random_graph(v, p_t, p_h):
     # A random matrix of size [v x v]
     X = np.random.uniform(-1, 1, (v, v))
@@ -25,15 +42,19 @@ def generate_random_graph(v, p_t, p_h):
     return X * free_mask
 
 
+def generate_adjacency_matrix(X):
+    # Adjacency Matrix - Free travels are considered as valid edges
+    adj_mat = np.array(X >= 0, dtype=np.int)
+
+    return adj_mat
+
+
 def valid_graph(X, v):
     # Create an adjacency matrix of graph matrix X
-    adj_mat = np.array(X >= 0, dtype=np.int)
+    adj_mat = generate_adjacency_matrix(X)
 
     # Remove self edges from the adjacency matric for convenience
     np.fill_diagonal(adj_mat, 0)
-
-    print("X:\n", X)
-    print("adj_mat:\n", adj_mat)
 
     # Calculate total number of undirected edges in the graph
     e = (np.sum(np.array((adj_mat + adj_mat.T) > 0, dtype=np.int))) / 2.0
@@ -95,7 +116,7 @@ def valid_graph(X, v):
 
 def plot_graph_network(X, v):
     # Create an adjacency matrix of graph matrix X
-    adj_mat = np.array(X >= 0, dtype=np.int)
+    adj_mat = generate_adjacency_matrix(X)
 
     # Create a list of directed edges associated with vertices vᵢ and vⱼ, ∀ i, j ∈ {1, 2, ... v}
     graph_edges = list()
@@ -118,6 +139,7 @@ def plot_graph_network(X, v):
 
 def usage():
     print("Usage: data_generator.py [-h | --help] \n"
+          "                         [-c | --complete] <flag to create a completed directed graph>\n"
           "                         [-i | --invalid] <flag to create an invalid graph> \n"
           "                         [-n | --num_cities] <Number of cities to visit> \n"
           "                         [-H | --hotel_prob] <Free hotel prob> \n"
@@ -125,14 +147,15 @@ def usage():
 
 
 def main(argv):
+    complete = False
     invalid = False
     v = 3
     p_t = 0.1
     p_h = 0.1
 
     try:
-        opts, args = getopt.getopt(argv, "hin:H:T:", ["help", "invalid", "num_cities=",
-                                                      "hotel_prob=", "travel_prob="])
+        opts, args = getopt.getopt(argv, "hcin:H:T:", ["help", "complete" "invalid", "num_cities=",
+                                                       "hotel_prob=", "travel_prob="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -141,6 +164,8 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
+        elif opt in ("-c", "--complete"):
+            complete = True
         elif opt in ("-i", "--invalid"):
             invalid = True
         elif opt in ("-n", "--num_cities"):
@@ -158,21 +183,27 @@ def main(argv):
             else:
                 p_t = float(arg)
 
-    # Generate a random directed graph with v vertices, represented as matrix X
-    X = generate_random_graph(v, p_t, p_h)
-
-    # Validate the graph to check if th graph is fully traversable
-    if invalid:
-        while valid_graph(X, v):
-            X = generate_random_graph(v, p_t, p_h)
+    if complete:
+        # Generate a random completed directed graph with v vertices, represented as matrix X
+        X = generate_complete_graph(v, p_t, p_h)
     else:
-        while not valid_graph(X, v):
-            X = generate_random_graph(v, p_t, p_h)
+        # Generate a random directed graph with v vertices, represented as matrix X
+        X = generate_random_graph(v, p_t, p_h)
+
+        # Validate the graph to check if th graph is fully traversable
+        if invalid:
+            while valid_graph(X, v):
+                X = generate_random_graph(v, p_t, p_h)
+        else:
+            while not valid_graph(X, v):
+                X = generate_random_graph(v, p_t, p_h)
+
+    print("X:\n", X)
 
     # Save the graph data in CSV format
     with open('inputs/graph_file.dat', 'w') as f:
         write = csv.writer(f)
-        write.writerow(str(v))
+        write.writerow([v])
         write.writerow('')
         for row in X:
             write.writerow(row.tolist())
