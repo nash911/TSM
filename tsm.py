@@ -6,10 +6,13 @@ import csv
 import matplotlib.pyplot as plt
 import networkx as nx
 
+from dp import DP
+from utils import generate_adjacency_matrix
+
 
 def validate_graph(X, v):
     # Create an adjacency matrix of graph matrix X
-    adj_mat = np.array(X >= 0, dtype=np.int)
+    adj_mat = generate_adjacency_matrix(X)
 
     # Remove self edges from the adjacency matric for convenience
     np.fill_diagonal(adj_mat, 0)
@@ -40,8 +43,6 @@ def validate_graph(X, v):
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
 
-    # print("Sum of Adj. powers:\n", np.sum(np.array(adj_powers), axis=0))
-
     # If there does not exists a path between any vertex pair {vᵢ, vⱼ}, then the graph is
     # not traversable
     if not np.all(path_exists):
@@ -50,33 +51,21 @@ def validate_graph(X, v):
         zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=np.int)
         zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=np.int)
 
-        # print("Path Zero Rows:", zero_rows)
-        # print("Path Zero Cols:", zero_cols)
-
         if np.sum(zero_cols) < v:
             ind = np.argwhere(zero_cols == 0).flatten()
-            # if ind.size != 1:
-            #     print("Error in Zero_Cols: ", zero_cols)
-            #     sys.exit(1)
-            # print("The journey can only start from city: %d" % (ind[0] + 1))
             return True, [ind[0] + 1]
         elif np.sum(zero_rows) < v:
             ind = np.argwhere(zero_rows == 0).flatten()
-            # if ind.size != 1:
-            #     print("Error in Zero_Rows: ", zero_rows)
-            #     sys.exit(1)
-            # print("The journey can start from any city but: %d" % (ind[0] + 1))
             possible_cities = list(range(1, (v + 1)))
             possible_cities.remove(ind[0] + 1)
             return True, possible_cities
 
-    # print("The journey can start from any city.")
     return True, list(range(1, (v + 1)))
 
 
 def plot_graph_network(X, v):
     # Create an adjacency matrix of graph matrix X
-    adj_mat = np.array(X >= 0, dtype=np.int)
+    adj_mat = generate_adjacency_matrix(X)
 
     # Create a list of directed edges associated with vertices vᵢ and vⱼ, ∀ i, j ∈ {1, 2, ... v}
     graph_edges = list()
@@ -97,8 +86,10 @@ def plot_graph_network(X, v):
     return
 
 
-def solve_tsm():
-    pass
+def solve_tsm_problem(X, start_city=None):
+    dp_solver = DP(X, start_city)
+
+    return dp_solver.solve()
 
 
 def usage():
@@ -176,13 +167,16 @@ def main(argv):
         return
     elif start_city is not None and start_city not in valid_start_cities:
         print("It is not possible to visit all the cities by starting the journey from city %d" % v)
-        print("For the provided graph, valid starting cities are: ", valid_start_cities)
+        print("For the provided graph, valid starting city/cities is/are: ", valid_start_cities)
         return
-
-    solve_tsm()
 
     # Plot the graph for visualization
     plot_graph_network(X, v)
+
+    optimal_path, trip_cost = solve_tsm_problem(X, start_city)
+
+    print(','.join(str(p) for p in optimal_path))
+    print("\n", trip_cost)
 
     return
 
