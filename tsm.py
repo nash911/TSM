@@ -37,7 +37,7 @@ def validate_graph(X, v):
     # n ∈ {1, 2, ... v-1}
     paths_sum = np.abs(np.sum(np.array(adj_powers), axis=0))
 
-    # Check if atlest one path exists between vertices vᵢ and vⱼ with n hops,
+    # Check if atlest one path exists between vertices vᵢ and vⱼ with any hop of length n,
     # ∀ i, j ∈ {1, 2, ... v}, and ∀ n ∈ {1, 2, ... v-1}
     path_bool = np.array(paths_sum, dtype=np.bool)
     np.fill_diagonal(path_bool, True)
@@ -46,21 +46,21 @@ def validate_graph(X, v):
     # If there does not exists a path between any vertex pair {vᵢ, vⱼ}, then the graph is
     # not traversable
     if not np.all(path_exists):
-        return False, []
+        return False, [], np.empty(0)
     else:
         zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=np.int)
         zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=np.int)
 
         if np.sum(zero_cols) < v:
             ind = np.argwhere(zero_cols == 0).flatten()
-            return True, [ind[0] + 1]
+            return True, [ind[0] + 1], path_bool
         elif np.sum(zero_rows) < v:
             ind = np.argwhere(zero_rows == 0).flatten()
             possible_cities = list(range(1, (v + 1)))
             possible_cities.remove(ind[0] + 1)
-            return True, possible_cities
+            return True, possible_cities, path_bool
 
-    return True, list(range(1, (v + 1)))
+    return True, list(range(1, (v + 1))), path_bool
 
 
 def plot_graph_network(X, v):
@@ -86,8 +86,8 @@ def plot_graph_network(X, v):
     return
 
 
-def solve_tsm_problem(X, start_city=None):
-    dp_solver = DP(X, start_city)
+def solve_tsm_problem(X, path_mat, start_city=None):
+    dp_solver = DP(X, path_mat, start_city)
 
     return dp_solver.solve()
 
@@ -101,6 +101,9 @@ def usage():
 def main(argv):
     input_file = None
     start_city = None
+
+    known_optimal_cost = None
+    known_optimal_path = None
 
     try:
         opts, args = getopt.getopt(argv, "hi:s:", ["help", "inp_file=", "start_city="])
@@ -148,7 +151,11 @@ def main(argv):
                     # Extract graph rows from input file
                     graph_data.append(row)
 
-    X = np.array(graph_data, dtype=np.float)
+    X = np.array(graph_data[:v], dtype=np.float)
+
+    if len(graph_data) > v:
+        known_optimal_cost = graph_data[-1]
+        known_optimal_path = graph_data[-3]
 
     if X.shape[0] != X.shape[1]:
         print("Error: The provided graph matrix is not square!")
@@ -160,7 +167,7 @@ def main(argv):
         print("Error: The start-city index should be in the range: [1, %d]." % v)
         sys.exit(1)
 
-    graph_valid, valid_start_cities = validate_graph(X, v)
+    graph_valid, valid_start_cities, path_mat = validate_graph(X, v)
 
     if not graph_valid:
         print("Nonviable input")
@@ -173,7 +180,7 @@ def main(argv):
     # Plot the graph for visualization
     plot_graph_network(X, v)
 
-    optimal_path, trip_cost = solve_tsm_problem(X, start_city)
+    optimal_path, trip_cost = solve_tsm_problem(X, path_mat, start_city)
 
     print(','.join(str(p) for p in optimal_path))
     print("\n", trip_cost)
