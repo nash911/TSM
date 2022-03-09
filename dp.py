@@ -97,7 +97,10 @@ class DP(object):
         # cheapest_trip = np.argmin(np.array(costs))
 
     def cost(self, source, dest):
-        if len(dest) == 1:
+        if len(dest) == 0:
+            # Has reached the end of the tree (the final city)
+            return 0, []
+        elif len(dest) == 1:
             self._evaluation_counter += 1
             # print("[1] Source: ", source, "  Destination: ", dest[0])
             # if not (self._adj_mat[source, dest[0]] or self._path_mat[source, dest[0]]):
@@ -123,6 +126,12 @@ class DP(object):
                     continue
                 sub_dest = copy.deepcopy(dest)
                 sub_dest.remove(d)
+
+                # Remove any transit cities from cities-to-visit list, if any
+                for vert in self._sub_paths[(source, d)]:
+                    if vert in sub_dest:
+                        sub_dest.remove(vert)
+
                 # print("(d: ", (d + 1), "  sub_dest:", (np.array(sub_dest) + 1).tolist())
                 travel_cost, path = self.cost(d, sub_dest)
                 if travel_cost == np.inf:
@@ -143,6 +152,13 @@ class DP(object):
                     else:
                         paths.append([source] + self._sub_paths[(source, d)] + path[1:])
             cheapest_subrout = np.argmin(np.array(costs))
+
+            # try:
+            #     cheapest_subrout = np.argmin(np.array(costs))
+            # except ValueError:
+            #     print("ArgMin Error:  Source: ", source + 1, "  Destination: ", dest)
+            #     return 0, []
+
             # print("[4] Source: ", (source + 1), "  Destinations: ", (np.array(dest) + 1).tolist(),
             #       "  Path: ", (np.array(paths[cheapest_subrout])).tolist(),
             #       "  Cost: ", costs[cheapest_subrout])
