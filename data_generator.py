@@ -23,9 +23,11 @@ def generate_complete_graph(v, p_t, p_h):
     return X * free_mask
 
 
-def generate_random_graph(v, p_t, p_h):
+def generate_random_graph(v, p_b, p_t, p_h):
     # A random matrix of size [v x v]
-    X = np.random.uniform(-1, 1, (v, v))
+    lower = int(p_b * 10) - 10
+    upper = int(p_b * 10)
+    X = np.random.choice(list(range(lower, upper)), size=(v, v), p=[0.1] * 10)
 
     # Make diagonals (hotel cost) strictly positive
     np.fill_diagonal(X, np.abs(np.diag(X)))
@@ -139,23 +141,26 @@ def plot_graph_network(X, v):
 
 def usage():
     print("Usage: data_generator.py [-h | --help] \n"
+          "                         [-H | --bidir_prob] <Prob. that an edge is bidirectional> \n"
           "                         [-c | --complete] <flag to create a completed directed graph>\n"
           "                         [-i | --invalid] <flag to create an invalid graph> \n"
           "                         [-n | --num_cities] <Number of cities to visit> \n"
-          "                         [-H | --hotel_prob] <Free hotel prob> \n"
-          "                         [-T | --travel_prob] <Free travel prob> \n")
+          "                         [-H | --hotel_prob] <Free hotel prob.> \n"
+          "                         [-T | --travel_prob] <Free travel prob.> \n")
 
 
 def main(argv):
     complete = False
     invalid = False
     v = 3
+    p_b = 0.5
     p_t = 0.1
     p_h = 0.1
 
     try:
-        opts, args = getopt.getopt(argv, "hcin:H:T:", ["help", "complete" "invalid", "num_cities=",
-                                                       "hotel_prob=", "travel_prob="])
+        opts, args = getopt.getopt(argv, "hcin:B:H:T:",
+                                   ["help", "complete" "invalid", "num_cities=", "bidir_prob=",
+                                    "hotel_prob=", "travel_prob="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -170,15 +175,21 @@ def main(argv):
             invalid = True
         elif opt in ("-n", "--num_cities"):
             v = int(arg)
+        elif opt in ("-B", "--bidir_prob"):
+            if float(arg) < 0 or float(arg) > 1:
+                print("Error: Bidirectional edge prob. should be 0 >= [-B|--bidir_prob] <= 1.0")
+                sys.exit()
+            else:
+                p_b = float(arg)
         elif opt in ("-H", "--hotel_prob"):
             if float(arg) < 0 or float(arg) > 1:
-                print("Error: Free hotel prob should be 0 >= [-H|--hotel_prob] <= 1.0")
+                print("Error: Free hotel prob. should be 0 >= [-H|--hotel_prob] <= 1.0")
                 sys.exit()
             else:
                 p_h = float(arg)
         elif opt in ("-T", "--travel_prob"):
             if float(arg) < 0 or float(arg) > 1:
-                print("Error: Free travel prob should be 0 >= [-T|--travel_prob] <= 1.0")
+                print("Error: Free travel prob. should be 0 >= [-T|--travel_prob] <= 1.0")
                 sys.exit()
             else:
                 p_t = float(arg)
@@ -188,15 +199,15 @@ def main(argv):
         X = generate_complete_graph(v, p_t, p_h)
     else:
         # Generate a random directed graph with v vertices, represented as matrix X
-        X = generate_random_graph(v, p_t, p_h)
+        X = generate_random_graph(v, p_b, p_t, p_h)
 
         # Validate the graph to check if th graph is fully traversable
         if invalid:
             while valid_graph(X, v):
-                X = generate_random_graph(v, p_t, p_h)
+                X = generate_random_graph(v, p_b, p_t, p_h)
         else:
             while not valid_graph(X, v):
-                X = generate_random_graph(v, p_t, p_h)
+                X = generate_random_graph(v, p_b, p_t, p_h)
 
     print("X:\n", X)
 
