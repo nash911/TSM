@@ -2,12 +2,30 @@ import numpy as np
 import sys
 import os
 import getopt
-import csv
-import matplotlib.pyplot as plt
-import networkx as nx
 
 from dp import DP
 from utils import generate_adjacency_matrix
+from utils import extract_graph_data
+from utils import plot_graph_network
+
+
+def test_solutions(X, v, path_mat, file, start_city, optimal_path, optimal_cost):
+    # Plot the graph for visualization
+    plot_graph_network(X, v, 2)
+
+    path, cost = solve_tsm_problem(X, path_mat, start_city)
+
+    print("Path: ", ','.join(str(p) for p in path))
+    print("Cost:", cost)
+
+    try:
+        np.testing.assert_array_equal(optimal_path, path)
+        np.testing.assert_array_equal([optimal_cost], [cost])
+    except AssertionError:
+        print("AssertionError: File: %s - start_city: %s" % (file, str(start_city)))
+        sys.exit(1)
+
+    return
 
 
 def validate_graph(X, v):
@@ -63,50 +81,24 @@ def validate_graph(X, v):
     return True, list(range(1, (v + 1))), path_bool
 
 
-def plot_graph_network(X, v):
-    # Create an adjacency matrix of graph matrix X
-    adj_mat = generate_adjacency_matrix(X)
-
-    # Create a list of directed edges associated with vertices vᵢ and vⱼ, ∀ i, j ∈ {1, 2, ... v}
-    graph_edges = list()
-    for i, row in enumerate(adj_mat):
-        for j, val in enumerate(row):
-            if val == 1:
-                graph_edges.append((str(i + 1), str(j + 1)))
-
-    # Create a directed graph, with the associated edges
-    G = nx.DiGraph()
-    G.add_edges_from(graph_edges)
-
-    # Plot the graph for visualization
-    plt.figure(figsize=(8, 8))
-    nx.draw(G, with_labels=True, node_size=1000, connectionstyle='arc3, rad = 0.5')
-    plt.waitforbuttonpress(0)
-    plt.close()
-    return
-
-
 def solve_tsm_problem(X, path_mat, start_city=None):
     dp_solver = DP(X, path_mat, start_city)
-
     return dp_solver.solve()
 
 
 def usage():
     print("Usage: tsm.py [-h | --help] \n"
-          "              [-i | --inp_file] <Path to inpit file containing graph data> \n"
+          "              [-i | --input] <Path to input file/dir containing graph data> \n"
           "              [-s | --start_city] <Index of city to start the journey from> \n")
 
 
 def main(argv):
-    input_file = None
+    input = None
     start_city = None
-
-    known_optimal_cost = None
-    known_optimal_path = None
+    force_eval = False
 
     try:
-        opts, args = getopt.getopt(argv, "hi:s:", ["help", "inp_file=", "start_city="])
+        opts, args = getopt.getopt(argv, "hi:s:", ["help", "input=", "start_city="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -115,12 +107,12 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit(1)
-        elif opt in ("-i", "--inp_file"):
-            if not os.path.isfile(arg):
-                print("Error: Invalid input file path: %s. Please provide a valid file path." % arg)
+        elif opt in ("-i", "--input"):
+            if not os.path.exists(arg):
+                print("Error: Invalid input path: %s. Please provide a valid file/dir path." % arg)
                 sys.exit(1)
             else:
-                input_file = arg
+                input = arg
         elif opt in ("-s", "--start_city"):
             try:
                 if int(arg) < 1:
@@ -133,57 +125,36 @@ def main(argv):
                       "[1, No. of cities].")
                 sys.exit(1)
 
-    if input_file is None:
-        print("Please provide a valid input file path, containing graph data.")
-        print("Use flag [-i|--inp_file]")
-        sys.exit(1)
-    else:
-        with open(input_file) as inp_f:
-            csv_reader = csv.reader(inp_f, delimiter=',')
-            graph_data = list()
-            for i, row in enumerate(csv_reader):
-                if i == 0:
-                    v = int(row[0])
-                elif i == 1:
-                    # Omit the blank line
-                    pass
-                else:
-                    # Extract graph rows from input file
-                    graph_data.append(row)
+    graph_dict = extract_graph_data(input)
 
-    X = np.array(graph_data[:v], dtype=np.float)
+    for k, val in graph_dict.items():
+        X = val['graph_mat']
+        v = val['v']
+        graph_valid, valid_start_cities, path_mat = validate_graph(X, v)
 
-    if len(graph_data) > v:
-        known_optimal_cost = graph_data[-1]
-        known_optimal_path = graph_data[-3]
+        if not graph_valid:
+            print("Nonviable input")
+            return
 
-    if X.shape[0] != X.shape[1]:
-        print("Error: The provided graph matrix is not square!")
-        sys.exit(1)
-    elif X.shape[0] != v:
-        print("Error: No. of cities in the input file is not consistent with the graph matrix size")
-        sys.exit(1)
-    elif start_city is not None and start_city > v:
-        print("Error: The start-city index should be in the range: [1, %d]." % v)
-        sys.exit(1)
+        if val['solutions'] is None or force_eval:
+            if start_city is not None and start_city not in valid_start_cities:
+                print(("It is not possible to visit all the cities by starting the journey from " +
+                      "city %d") % v)
+                print("For the provided graph, valid starting city/cities is/are: ",
+                      valid_start_cities)
+                return
 
-    graph_valid, valid_start_cities, path_mat = validate_graph(X, v)
+            # Plot the graph for visualization
+            plot_graph_network(X, v)
 
-    if not graph_valid:
-        print("Nonviable input")
-        return
-    elif start_city is not None and start_city not in valid_start_cities:
-        print("It is not possible to visit all the cities by starting the journey from city %d" % v)
-        print("For the provided graph, valid starting city/cities is/are: ", valid_start_cities)
-        return
+            path, trip_cost = solve_tsm_problem(X, path_mat, start_city)
 
-    # Plot the graph for visualization
-    plot_graph_network(X, v)
-
-    optimal_path, trip_cost = solve_tsm_problem(X, path_mat, start_city)
-
-    print(','.join(str(p) for p in optimal_path))
-    print("\n", trip_cost)
+            print(','.join(str(p) for p in path), "\n")
+            print(trip_cost)
+        else:
+            for sol in val['solutions']:
+                test_solutions(X, v, path_mat, k, start_city=sol[0], optimal_path=sol[1],
+                               optimal_cost=sol[2])
 
     return
 
