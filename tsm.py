@@ -9,14 +9,16 @@ from utils import extract_graph_data
 from utils import plot_graph_network
 
 
-def test_solutions(X, v, path_mat, file, start_city, optimal_path, optimal_cost):
-    # Plot the graph for visualization
-    plot_graph_network(X, v, 2)
+def test_solutions(X, v, path_mat, file, start_city, optimal_path, optimal_cost, debugger=False):
+    if debugger:
+        # Plot the graph for visualization
+        plot_graph_network(X, v, t=2)
 
-    path, cost = solve_tsm_problem(X, path_mat, start_city)
+    path, cost = solve_tsm_problem(X, path_mat, start_city, debugger)
 
-    print("Path: ", ','.join(str(p) for p in path))
-    print("Cost:", cost)
+    if debugger:
+        print("Optimal Path: ", ','.join(str(p) for p in path))
+        print("Cost:", cost)
 
     try:
         np.testing.assert_array_equal(optimal_path, path)
@@ -32,31 +34,22 @@ def validate_graph(X, v):
     # Create an adjacency matrix of graph matrix X
     adj_mat = generate_adjacency_matrix(X)
 
-    # Remove self edges from the adjacency matric for convenience
+    # Remove self edges from the adjacency matrix for convenience
     np.fill_diagonal(adj_mat, 0)
 
-    # # Calculate total number of undirected edges in the graph
-    # e = (np.sum(np.array((adj_mat + adj_mat.T) > 0, dtype=np.int))) / 2.0
-    # if int(e) != e:
-    #     print("Error: ", int(e), " != ", e)
-    #     sys.exit(2)
-    # else:
-    #     e = int(e)
-    # print("Number of edges: ", e)
-
     # Compute number of unique paths from vertex vᵢ to vⱼ with exactly n hops, where
-    # n ∈ {1, 2, ... v-1}
+    # n ∈ {1, 2, ..., |V|-1}
     adj_powers = [adj_mat]
     for i in range(2, v):
         # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
         adj_powers.append(np.linalg.matrix_power(adj_mat, i))
 
     # Summing all possible paths from vertex vᵢ to vⱼ with n hops, where
-    # n ∈ {1, 2, ... v-1}
+    # n ∈ {1, 2, ..., |V|-1}
     paths_sum = np.abs(np.sum(np.array(adj_powers), axis=0))
 
     # Check if atlest one path exists between vertices vᵢ and vⱼ with any hop of length n,
-    # ∀ i, j ∈ {1, 2, ... v}, and ∀ n ∈ {1, 2, ... v-1}
+    # ∀ i, j ∈ {1, 2, ..., |V|}, and ∀ n ∈ {1, 2, ..., |V|-1}
     path_bool = np.array(paths_sum, dtype=np.bool)
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
@@ -66,13 +59,18 @@ def validate_graph(X, v):
     if not np.all(path_exists):
         return False, [], np.empty(0)
     else:
+        # Find the list of possible cities from where the journey can originate
         zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=np.int)
         zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=np.int)
 
         if np.sum(zero_cols) < v:
+            # In the path_matrix, if there exists a column Cᵢ = [0, 0, ..., 0]ᵀ, then vertex vᵢ
+            # has no incoming edges, so the journey can only start from vertex vᵢ
             ind = np.argwhere(zero_cols == 0).flatten()
             return True, [ind[0] + 1], path_bool
         elif np.sum(zero_rows) < v:
+            # In the path_matrix, if there exists a row Rᵢ = [0, 0, ..., 0], then vertex vᵢ
+            # has no outgoing edges, so the journey can start from any vertex vⱼ, where j≠i
             ind = np.argwhere(zero_rows == 0).flatten()
             possible_cities = list(range(1, (v + 1)))
             possible_cities.remove(ind[0] + 1)
@@ -81,13 +79,15 @@ def validate_graph(X, v):
     return True, list(range(1, (v + 1))), path_bool
 
 
-def solve_tsm_problem(X, path_mat, start_city=None):
+def solve_tsm_problem(X, path_mat, start_city=None, debugger=False):
     dp_solver = DP(X, path_mat, start_city)
-    return dp_solver.solve()
+    return dp_solver.solve(debugger)
 
 
 def usage():
     print("Usage: tsm.py [-h | --help] \n"
+          "              [-d | --debugger] <Debugger flag to display network graph and verbose " +
+          "output> \n"
           "              [-i | --input] <Path to input file/dir containing graph data> \n"
           "              [-s | --start_city] <Index of city to start the journey from> \n")
 
@@ -95,10 +95,11 @@ def usage():
 def main(argv):
     input = None
     start_city = None
+    debugger = False
     force_eval = False
 
     try:
-        opts, args = getopt.getopt(argv, "hi:s:", ["help", "input=", "start_city="])
+        opts, args = getopt.getopt(argv, "hdi:s:", ["help", "debugger", "input=", "start_city="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -106,7 +107,9 @@ def main(argv):
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             usage()
-            sys.exit(1)
+            return
+        elif opt in ("-d", "--debugger"):
+            debugger = True
         elif opt in ("-i", "--input"):
             if not os.path.exists(arg):
                 print("Error: Invalid input path: %s. Please provide a valid file/dir path." % arg)
@@ -144,17 +147,18 @@ def main(argv):
                       valid_start_cities)
                 return
 
-            # Plot the graph for visualization
-            plot_graph_network(X, v)
+            if debugger:
+                # Plot the graph for visualization
+                plot_graph_network(X, v, t=10)
 
-            path, trip_cost = solve_tsm_problem(X, path_mat, start_city)
+            path, trip_cost = solve_tsm_problem(X, path_mat, start_city, debugger)
 
             print(','.join(str(p) for p in path), "\n")
             print(trip_cost)
         else:
             for sol in val['solutions']:
                 test_solutions(X, v, path_mat, k, start_city=sol[0], optimal_path=sol[1],
-                               optimal_cost=sol[2])
+                               optimal_cost=sol[2], debugger=debugger)
 
     return
 
