@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from collections import OrderedDict
 
 from utils import generate_adjacency_matrix
@@ -17,9 +18,15 @@ class DP(object):
         # direct path of travel exists between each city pair {cᵢ, cⱼ}, ∀ i, j ∈ {1, 2, ..., |V|}.
         self._adj_mat = np.array(generate_adjacency_matrix(X), dtype=np.bool)
 
+        # Remove self edges from the adjacency matrix
+        np.fill_diagonal(self._adj_mat, False)
+
         # A boolean map as a 2D matrix, indicationg if a path of any length exists between each
         # city pairs {cᵢ, cⱼ}, ∀ i, j ∈ {1, 2, ..., |V|}.
         self._path_mat = path_mat
+
+        # Remove self edges from the path matrix
+        np.fill_diagonal(self._path_mat, False)
 
         # List of cities the journey can start from
         if start_city is None:
@@ -50,72 +57,20 @@ class DP(object):
                     # as invalid
                     self._sub_paths[(i, j)] = None
 
-        # print("self._sub_paths: \n", self._sub_paths)
-        # print("self._adj_mat:\n", self._adj_mat)
-
-    def subpath_cost(self, start, end, cities_set):
-        # print("[0] Start: ", (start + 1), "  End: ", (end + 1), "  Cities: ",
-        #       set(np.array(list(cities_set)) + 1))
-        if start == end:
-            # print("[1] Start: ", (start + 1), "  End: ", (end + 1), "  Cities: ",
-            #       set(np.array(list(cities_set)) + 1), "  Cost: ", 0, "  Path: ", [])
+    def optimal_path(self, source, dest, end=None):
+        if source == end:
+            self._evaluation_counter += 1
             return 0, [end]
-        elif len(cities_set) == 1:
-            # print("[2] Start: ", (start + 1), "  End: ", (end + 1), "  Cities: ",
-            #       set(np.array(list(cities_set)) + 1), "  Cost: ", self._X[start, list(cities_set)[0]],
-            #       "  Path: ", (np.array([start] + list(cities_set)) + 1).tolist())
-            return self._X[start, list(cities_set)[0]], [start] + list(cities_set)
-        else:
-            costs = list()
-            paths = list()
-
-            for i in cities_set:
-                if not self._adj_mat[start, i]:
-                    # print("(%d, %d): None" % (start + 1, i + 1))
-                    # print("[3] Start: ", (start + 1), "  End: ", (end + 1), "  Cities: ",
-                    #       set(np.array(list(cities_set)) + 1), "  Cost: ", np.inf, "  Path: None")
-                    # return np.inf, None
-                    costs.append(np.inf)
-                    paths.append(None)
-                else:
-                    # sub_dest = copy.deepcopy(dest)
-                    # sub_dest.remove(d)
-                    travel_cost, path = self.subpath_cost(i, end, cities_set - {i})
-                    if travel_cost == np.inf:
-                        costs.append(np.inf)
-                        paths.append([])
-                    else:
-                        # costs.append(self._X[source, d] + travel_cost)  # Travel cost only
-                        # Travel cost + Hotel cost
-                        costs.append(self._X[start, i] + (0 if i == end else self._X[i, i]) +
-                                     travel_cost)
-                        paths.append([start] + path)
-                        # paths.append(path)
-
-            cheapest_subrout = np.argmin(np.array(costs))
-            # print("[4] Start: ", (start + 1), "  End: ", (end + 1), "  Cities: ",
-            #       set(np.array(list(cities_set)) + 1), "  Cost: ", costs[cheapest_subrout],
-            #       "  Path: ", (np.array(paths[cheapest_subrout]) + 1).tolist())
-            return costs[cheapest_subrout], paths[cheapest_subrout]
-
-    def retrace_path(self, start, end):
-        cities_set = set(range(self._v))
-
-        cost, path = self.subpath_cost(start, end, cities_set - {start})
-
-        self._X[start, end] = cost
-        self._sub_paths[(start, end)] = path[1:]
-
-    def cost(self, source, dest):
-        if len(dest) == 0:
-            # Has reached the end of the tree (the final city)
+        elif len(dest) == 0:
+            self._evaluation_counter += 1
+            # Has reached the end of the tree (the final city), so returning 0 cost and empth path
             return 0, []
         elif len(dest) == 1:
             # Has reached the penultimate city
             dest = list(dest)[0]
             self._evaluation_counter += 1
 
-            # Check if a path or any length exists between source city cᵢ and destination city cⱼ
+            # Check if a path of any length exists between source city cᵢ and destination city cⱼ
             if self._path_mat[source, dest]:
                 # If so, then the total cost = Travel_cost(cᵢ --> cⱼ) only
                 # No accommodation at the final city
@@ -132,34 +87,49 @@ class DP(object):
             #           j∈s
             # where i = source_city, j = destination_city, and s = set of cities yet to be visited.
             for j in dest:
-                # Check if a path or any length exists between the source city cᵢ and the
-                # destination city cⱼ
-                if not self._path_mat[source, j]:
-                    # If not, then proceed no further through that branch, and mark cost of travel
-                    # as infinite
-                    costs.append(np.inf)
-                    paths.append(None)
-                    continue
+                if end is not None:
+                    # While finding the optimal path between two cities c_start and c_end, which
+                    # are not directly connected (path retracing), check if source city cᵢ of the
+                    # current iteration, and the destination city cⱼ are directly connected
+                    if not self._adj_mat[source, j]:
+                        # If not, then proceed no further through this branch, and mark cost of
+                        # travel as infinite
+                        costs.append(np.inf)
+                        paths.append(None)
+                        continue
+                else:
+                    # While finding the optimal path, starting from some city c_start (without a
+                    # desired final destination), check if a path of any length exists between the
+                    # source city cᵢ of the current iteration and the destination city cⱼ
+                    if not self._path_mat[source, j]:
+                        # If not, then proceed no further through this branch, and mark cost
+                        # of travel as infinite
+                        costs.append(np.inf)
+                        paths.append(None)
+                        continue
 
                 # Get the minimum cost of travel and accommodation for the route starting from
                 # city cⱼ and visiting the remaining cities in the cities-to-visit set.
                 # Also, en route from the source city cᵢ to the destination city cⱼ, remove any
                 # transit cities from the cities-to-visit set.
-                travel_cost, path = self.cost(j, dest - set(self._sub_paths[(source, j)]))
+                cost, path = \
+                    self.optimal_path(j, dest - set(self._sub_paths[(source, j)]), end)
 
                 # If the cost of travel from the source city cᵢ to the destination city cⱼ is
                 # infinite, then it indicates that the branch is not completely traversable
-                if travel_cost == np.inf:
+                if cost == np.inf:
                     costs.append(np.inf)
                     paths.append(None)
                 else:
-                    # Cost of travel from city cᵢ to cⱼ = Travel_cost(cᵢ --> cⱼ) + Hotel_cost(cⱼ)
-                    costs.append(self._X[source, j] + self._X[j, j] + travel_cost)
+                    # Cost of travel from city cᵢ to all remaining cities via city cⱼ =
+                    # Travel_cost(cᵢ --> cⱼ) + Hotel_cost(cⱼ) + Total future cost for travelling
+                    # from cⱼ to the remaining cities via the optimal path
+                    costs.append(self._X[source, j] + (0 if j == end else self._X[j, j]) + cost)
 
                     # Check if a direct path exists between the source city cᵢ and the destination
                     # city cⱼ
-                    if self._adj_mat[source, j]:
-                        # If so, the append the source city cᵢ to the path list
+                    if self._adj_mat[source, j] or end is not None:
+                        # If so, then append the source city cᵢ to the path list
                         paths.append([source] + path)
                     else:
                         # If not, then append both the source city cᵢ, and intermediate cities
@@ -173,7 +143,10 @@ class DP(object):
             cheapest_subrout = np.argmin(np.array(costs))
             return costs[cheapest_subrout], paths[cheapest_subrout]
 
-    def solve(self):
+    def solve(self, debugger=False):
+        if debugger:
+            start_time = time.time()
+
         # For each vertex pair {vᵢ, vⱼ}, check and create a flag if a path of length 1 < L < |V|
         # exists, ∀ i, j ∈ {1, 2, ..., |V|}, where L is the shortest path length between
         # vertices vᵢ and vⱼ
@@ -186,33 +159,38 @@ class DP(object):
 
             # Retrace the optimal path (with the lowest travel + accommodation cost) between
             # vertex pair {vᵢ, vⱼ} s.t. 1 < L < |V|, ∀ i, j ∈ {1, 2, ..., |V|}.
-            for rp in retrace_paths:
-                self.retrace_path(rp[0], rp[1])
-                # print("(%d --> %d)" % (rp[0] + 1, rp[1] + 1))
+            for i, j in retrace_paths:
+                cost, path = self.optimal_path(i, set(range(self._v)) - {i}, j)
 
-        # print("\nself._sub_paths: \n", self._sub_paths)
-        # print("self._X:\n", self._X)
+                # Set the optimal path and cost of travelling from vertex vᵢ to vⱼ
+                self._sub_paths[(i, j)] = path[1:]
+                self._X[i, j] = cost
 
         costs = list()
         paths = list()
-        to_visit = set(range(self._v))
 
         # Starting from each city cᵢ ∈ {starting_cities}, get the optimal path
         for s in self._start_cities:
-            cost, path = self.cost(s, to_visit - {s})
+            cost, path = self.optimal_path(s, set(range(self._v)) - {s})
             costs.append(cost)
             paths.append(path)
 
         # Among each city cᵢ ∈ {starting_cities}, get the most optimal city to start from
         cheapest_trip = np.argmin(np.array(costs))
 
-        # print("Paths: ", (np.array(paths) + 1).tolist())
-        print("Counts: ", self._evaluation_counter)
+        if debugger:
+            analytical_eval_counts = \
+                int(np.math.factorial(self._v) * (2 + np.sum([1.0 / np.math.factorial(i) for i in
+                                                  list(range(2, self._v - 1))])))
+            print("Number of computations: ", self._evaluation_counter)
+            print("Analytical calculated for a connected graph: ", analytical_eval_counts)
 
-        analytical_eval_counts = \
-            int(np.math.factorial(self._v) * (2 + np.sum([1.0 / np.math.factorial(i) for i in
-                                              list(range(2, self._v - 1))])))
+            # Check if each city is visited atleast once
+            np.testing.assert_array_equal(list(set(range(self._v))),
+                                          list(set(paths[cheapest_trip])))
 
-        print("Analytical calculated evaluation counts: ", analytical_eval_counts)
+            end_time = time.time()
+            print("Wall Time: %.2f(s)" % (end_time - start_time))
+            print()
 
         return (np.array(paths[cheapest_trip]) + 1).tolist(), costs[cheapest_trip]
