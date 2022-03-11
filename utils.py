@@ -69,15 +69,27 @@ def extract_graph_data(input_path, start_city=None):
             line = v
             while line < len(graph_data):
                 if len(graph_data[line]) == 1:
-                    # (start_city, optimal_path, cost)
-                    optimal_solution.append((int(graph_data[line][0]),
-                                             np.array(graph_data[line + 1], dtype=int).tolist(),
-                                             float(graph_data[line + 2][0])))
+                    try:
+                        # (start_city, optimal_path, cost, args=None)
+                        optimal_solution.append((int(graph_data[line][0]),
+                                                 np.array(graph_data[line + 1], dtype=int).tolist(),
+                                                 float(graph_data[line + 2][0]), None))
+                    except ValueError:
+                        start_and_args = graph_data[line][0].split(' ')
+                        try:
+                            start_city = int(start_and_args[0])
+                            args = start_and_args[1]
+                        except ValueError:
+                            start_city = None
+                            args = start_and_args[0]
+                        optimal_solution.append((start_city,
+                                                 np.array(graph_data[line + 1], dtype=int).tolist(),
+                                                 float(graph_data[line + 2][0]), args))
                     line += 3
                 else:
-                    # (start_city = Any, optimal_path, cost)
+                    # (start_city=Any, optimal_path, cost, args=None)
                     optimal_solution.append((None, np.array(graph_data[line], dtype=int).tolist(),
-                                             float(graph_data[line + 1][0])))
+                                             float(graph_data[line + 1][0]), None))
                     line += 2
             input_files_dict[file]['solutions'] = optimal_solution
         else:

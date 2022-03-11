@@ -9,10 +9,16 @@ from utils import extract_graph_data
 from utils import plot_graph_network
 
 
-def test_solutions(X, v, path_mat, file, start_city, optimal_path, optimal_cost, debugger=False):
+def test_solutions(X, v, path_mat, file, start_city, optimal_path, optimal_cost, args=None,
+                   debugger=False):
     if debugger:
         # Plot the graph for visualization
         plot_graph_network(X, v, t=2)
+
+    if args is not None:
+        # To optimize for the total number of days of travel, instead of total cost
+        X = np.where(X >= 0, 1, X)
+        np.fill_diagonal(X, 0)
 
     path, cost = solve_tsm_problem(X, path_mat, start_city, debugger)
 
@@ -88,6 +94,7 @@ def usage():
     print("Usage: tsm.py [-h | --help] \n"
           "              [-d | --debugger] <Debugger flag to display network graph and verbose " +
           "output> \n"
+          "              [-t | --time] <Flag to optimize for time of travel instead of cost> \n"
           "              [-i | --input] <Path to input file/dir containing graph data> \n"
           "              [-s | --start_city] <Index of city to start the journey from> \n")
 
@@ -95,11 +102,13 @@ def usage():
 def main(argv):
     input = None
     start_city = None
+    time = False
     debugger = False
     force_eval = False
 
     try:
-        opts, args = getopt.getopt(argv, "hdi:s:", ["help", "debugger", "input=", "start_city="])
+        opts, args = getopt.getopt(argv, "hdti:s:", ["help", "debugger", "time", "input=",
+                                                     "start_city="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -110,6 +119,8 @@ def main(argv):
             return
         elif opt in ("-d", "--debugger"):
             debugger = True
+        elif opt in ("-t", "--time"):
+            time = True
         elif opt in ("-i", "--input"):
             if not os.path.exists(arg):
                 print("Error: Invalid input path: %s. Please provide a valid file/dir path." % arg)
@@ -133,6 +144,12 @@ def main(argv):
     for k, val in graph_dict.items():
         X = val['graph_mat']
         v = val['v']
+
+        if time:
+            # To optimize for the total number of days of travel, instead of total cost
+            X = np.where(X >= 0, 1, X)
+            np.fill_diagonal(X, 0)
+
         graph_valid, valid_start_cities, path_mat = validate_graph(X, v)
 
         if not graph_valid:
@@ -158,7 +175,7 @@ def main(argv):
         else:
             for sol in val['solutions']:
                 test_solutions(X, v, path_mat, k, start_city=sol[0], optimal_path=sol[1],
-                               optimal_cost=sol[2], debugger=debugger)
+                               optimal_cost=sol[2], args=sol[3], debugger=debugger)
 
     return
 
