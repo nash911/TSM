@@ -105,6 +105,7 @@ def valid_graph(X, v):
     if not np.all(path_exists):
         return False
     else:
+        # Find the list of possible cities from where the journey can originate
         zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=np.int)
         zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=np.int)
 
@@ -112,6 +113,8 @@ def valid_graph(X, v):
         print("Path Zero Cols:", zero_cols)
 
         if np.sum(zero_cols) < v:
+            # In the path_matrix, if there exists a column Cᵢ = [0, 0, ..., 0]ᵀ, then vertex vᵢ
+            # has no incoming edges, so the journey can only start from vertex vᵢ
             ind = np.argwhere(zero_cols == 0).flatten()
             if ind.size != 1:
                 print("Error in Zero_Cols: ", zero_cols)
@@ -119,6 +122,8 @@ def valid_graph(X, v):
             print("The journey can only start from city: %d" % (ind[0] + 1))
             return True
         elif np.sum(zero_rows) < v:
+            # In the path_matrix, if there exists a row Rᵢ = [0, 0, ..., 0], then vertex vᵢ
+            # has no outgoing edges, so the journey can start from any vertex vⱼ, where j≠i
             ind = np.argwhere(zero_rows == 0).flatten()
             if ind.size != 1:
                 print("Error in Zero_Rows: ", zero_rows)

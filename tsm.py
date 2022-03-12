@@ -104,7 +104,6 @@ def main(argv):
     start_city = None
     time = False
     debugger = False
-    force_eval = False
 
     try:
         opts, args = getopt.getopt(argv, "hdti:s:", ["help", "debugger", "time", "input=",
@@ -156,7 +155,7 @@ def main(argv):
             print("Nonviable input")
             return
 
-        if val['solutions'] is None or force_eval:
+        if val['solutions'] is None:
             if start_city is not None and start_city not in valid_start_cities:
                 print(("It is not possible to visit all the cities by starting the journey from " +
                       "city %d") % v)
