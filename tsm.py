@@ -92,7 +92,7 @@ def solve_tsm_problem(X, path_mat, start_city=None, debugger=False):
 
 def usage():
     print("Usage: tsm.py [-h | --help] \n"
-          "              [-d | --debugger] <Debugger flag to display network graph and verbose " +
+          "              [-d | --debugger] <Debugger flag to display network graph and verbose" +
           "output> \n"
           "              [-t | --time] <Flag to optimize for time of travel instead of cost> \n"
           "              [-i | --input] <Path to input file/dir containing graph data> \n"

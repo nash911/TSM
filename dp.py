@@ -79,8 +79,8 @@ class DP(object):
                 # If not, then the current path is invalid. Returning infinite cost and no path
                 return np.inf, None
         else:
-            costs = list()
-            paths = list()
+            costs = [np.inf]
+            paths = [None]
 
             # Implementing TSM DP formula:
             # g(i, s) = min(w(i, j), g(j, {s - j})),
@@ -92,20 +92,14 @@ class DP(object):
                     # are not directly connected (path retracing), check if source city cᵢ of the
                     # current iteration, and the destination city cⱼ are directly connected
                     if not self._adj_mat[source, j]:
-                        # If not, then proceed no further through this branch, and mark cost of
-                        # travel as infinite
-                        costs.append(np.inf)
-                        paths.append(None)
+                        # If not, then proceed no further through this branch
                         continue
                 else:
                     # While finding the optimal path, starting from some city c_start (without a
                     # desired final destination), check if a path of any length exists between the
                     # source city cᵢ of the current iteration and the destination city cⱼ
                     if not self._path_mat[source, j]:
-                        # If not, then proceed no further through this branch, and mark cost
-                        # of travel as infinite
-                        costs.append(np.inf)
-                        paths.append(None)
+                        # If not, then proceed no further through this branch
                         continue
 
                 # Get the minimum cost of travel and accommodation for the route starting from
@@ -118,8 +112,7 @@ class DP(object):
                 # If the cost of travel from the source city cᵢ to the destination city cⱼ is
                 # infinite, then it indicates that the branch is not completely traversable
                 if cost == np.inf:
-                    costs.append(np.inf)
-                    paths.append(None)
+                    continue
                 else:
                     # Cost of travel from city cᵢ to all remaining cities via city cⱼ =
                     # Travel_cost(cᵢ --> cⱼ) + Hotel_cost(cⱼ) + Total future cost for travelling
