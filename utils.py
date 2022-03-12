@@ -10,7 +10,7 @@ import networkx as nx
 
 def generate_adjacency_matrix(X):
     # Adjacency matrix of graph matrix X
-    return np.array(X >= 0, dtype=np.int)
+    return np.array(X >= 0, dtype=int)
 
 
 def extract_graph_data(input_path, start_city=None):

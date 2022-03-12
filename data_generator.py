@@ -46,7 +46,7 @@ def generate_random_graph(v, p_b, p_t, p_h):
     # Make diagonals (hotel cost) strictly positive
     np.fill_diagonal(X, np.abs(np.diag(X)))
     # free_mask = np.array((np.random.choice([0, 1], size=(n, n), p=[p, (1 - p)]) + np.eye(n)) > 0,
-    #                      dtype=np.int)
+    #                      dtype=int)
 
     # Randomly choose some travels to be free with probability p_t
     free_mask = np.random.choice([0, 1], size=(v, v), p=[p_t, (1 - p_t)])
@@ -60,7 +60,7 @@ def generate_random_graph(v, p_b, p_t, p_h):
 
 def generate_adjacency_matrix(X):
     # Adjacency Matrix - Free travels are considered as valid edges
-    adj_mat = np.array(X >= 0, dtype=np.int)
+    adj_mat = np.array(X >= 0, dtype=int)
 
     return adj_mat
 
@@ -73,7 +73,7 @@ def valid_graph(X, v):
     np.fill_diagonal(adj_mat, 0)
 
     # Calculate total number of undirected edges in the graph
-    e = (np.sum(np.array((adj_mat + adj_mat.T) > 0, dtype=np.int))) / 2.0
+    e = (np.sum(np.array((adj_mat + adj_mat.T) > 0, dtype=int))) / 2.0
     if int(e) != e:
         print("Error: ", int(e), " != ", e)
         sys.exit(2)
@@ -94,7 +94,7 @@ def valid_graph(X, v):
 
     # Check if atlest one path exists between vertices vᵢ and vⱼ with n hops,
     # ∀ i, j ∈ {1, 2, ... v}, and ∀ n ∈ {1, 2, ... v-1}
-    path_bool = np.array(paths_sum, dtype=np.bool)
+    path_bool = np.array(paths_sum, dtype=bool)
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
 
@@ -106,8 +106,8 @@ def valid_graph(X, v):
         return False
     else:
         # Find the list of possible cities from where the journey can originate
-        zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=np.int)
-        zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=np.int)
+        zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=int)
+        zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=int)
 
         print("Path Zero Rows:", zero_rows)
         print("Path Zero Cols:", zero_cols)

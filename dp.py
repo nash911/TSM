@@ -16,7 +16,7 @@ class DP(object):
 
         # Create an adjacency matrix for the graph matrix X, as a boolean map, indicating if a
         # direct path of travel exists between each city pair {cᵢ, cⱼ}, ∀ i, j ∈ {1, 2, ..., |V|}.
-        self._adj_mat = np.array(generate_adjacency_matrix(X), dtype=np.bool)
+        self._adj_mat = np.array(generate_adjacency_matrix(X), dtype=bool)
 
         # Remove self edges from the adjacency matrix
         np.fill_diagonal(self._adj_mat, False)
@@ -148,7 +148,7 @@ class DP(object):
         # If there are any vertex pair {vᵢ, vⱼ}, with shortest path length 1 < L < |V|
         if np.any(retrace_flag):
             # Get all vertex pairs for which the above condition satisfies
-            retrace_paths = np.array(np.where(np.array(retrace_flag, dtype=np.int) == 1)).T.tolist()
+            retrace_paths = np.array(np.where(np.array(retrace_flag, dtype=int) == 1)).T.tolist()
 
             # Retrace the optimal path (with the lowest travel + accommodation cost) between
             # vertex pair {vᵢ, vⱼ} s.t. 1 < L < |V|, ∀ i, j ∈ {1, 2, ..., |V|}.

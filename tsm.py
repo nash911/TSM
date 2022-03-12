@@ -56,7 +56,7 @@ def validate_graph(X, v):
 
     # Check if atlest one path exists between vertices vᵢ and vⱼ with any hop of length n,
     # ∀ i, j ∈ {1, 2, ..., |V|}, and ∀ n ∈ {1, 2, ..., |V|-1}
-    path_bool = np.array(paths_sum, dtype=np.bool)
+    path_bool = np.array(paths_sum, dtype=bool)
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
 
@@ -66,8 +66,8 @@ def validate_graph(X, v):
         return False, [], np.empty(0)
     else:
         # Find the list of possible cities from where the journey can originate
-        zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=np.int)
-        zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=np.int)
+        zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=int)
+        zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=int)
 
         if np.sum(zero_cols) < v:
             # In the path_matrix, if there exists a column Cᵢ = [0, 0, ..., 0]ᵀ, then vertex vᵢ
