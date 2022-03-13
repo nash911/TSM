@@ -43,20 +43,33 @@ def validate_graph(X, v):
     # Remove self edges from the adjacency matrix for convenience
     np.fill_diagonal(adj_mat, 0)
 
-    # Compute number of unique paths from vertex vᵢ to vⱼ with exactly n hops, where
-    # n ∈ {1, 2, ..., |V|-1}
-    adj_powers = [adj_mat]
-    for i in range(2, v):
-        # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
-        adj_powers.append(np.linalg.matrix_power(adj_mat, i))
+    # Finding the total number of paths from vertex vᵢ to vⱼ, ∀ i, j ∈ {1, 2, ... v}:
+    # Compute the number of unique paths from vertex vᵢ to vⱼ with exactly n hops, and sum over
+    # all n ∈ {1, 2, ..., |V|-1}
+    paths_sum = np.array(np.copy(adj_mat), dtype=float)  # n=1
 
-    # Summing all possible paths from vertex vᵢ to vⱼ with n hops, where
-    # n ∈ {1, 2, ..., |V|-1}
-    paths_sum = np.abs(np.sum(np.array(adj_powers), axis=0))
+    # Using the eigen trick to find the nth power of a matrix as follows:
+    # Adj = PDP⁻¹, where D is a diagonal matrix
+    # (Adj)ⁿ = (PDP⁻¹)ⁿ = PDⁿP⁻¹
+    eigen_val, P = np.linalg.eig(adj_mat)
+    try:
+        P_inv = np.linalg.inv(P)
+        for i in range(2, v):
+            # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
+            D = np.diag(eigen_val**i)
+            paths_sum += np.matmul(np.matmul(P, D), P_inv).real
+    except np.linalg.linalg.LinAlgError:
+        # If P is a singular matrix (when any vertex vᵢ has either no incoming edges,
+        # or no outgoing edges), then it is noninvertable.
+        # So, resorting to regular matrix multiplication for finding the nth power of the
+        # adjacency matrix.
+        for i in range(2, v):
+            # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
+            paths_sum += np.linalg.matrix_power(adj_mat, i)
 
     # Check if atlest one path exists between vertices vᵢ and vⱼ with any hop of length n,
     # ∀ i, j ∈ {1, 2, ..., |V|}, and ∀ n ∈ {1, 2, ..., |V|-1}
-    path_bool = np.array(paths_sum, dtype=bool)
+    path_bool = np.array(np.abs(paths_sum), dtype=bool)
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
 

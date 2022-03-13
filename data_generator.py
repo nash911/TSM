@@ -81,24 +81,32 @@ def valid_graph(X, v):
         e = int(e)
     print("Number of edges: ", e)
 
-    # Compute number of unique paths from vertex vᵢ to vⱼ with exactly n hops, where
-    # n ∈ {1, 2, ... v-1}
-    adj_powers = [adj_mat]
+    # # Compute number of unique paths from vertex vᵢ to vⱼ with exactly n hops, where
+    # # n ∈ {1, 2, ... v-1}
+    # adj_powers = [adj_mat]
+    # for i in range(2, v):
+    #     # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
+    #     adj_powers.append(np.linalg.matrix_power(adj_mat, i))
+    #
+    # # Summing all possible paths from vertex vᵢ to vⱼ with n hops, where
+    # # n ∈ {1, 2, ... v-1}
+    # paths_sum = np.abs(np.sum(np.array(adj_powers), axis=0))
+
+    # Finding the total number of paths from vertex vᵢ to vⱼ, ∀ i, j ∈ {1, 2, ... v}:
+    # Compute the number of unique paths from vertex vᵢ to vⱼ with exactly n hops, and sum over
+    # all n ∈ {1, 2, ..., |V|-1}
+    paths_sum = np.copy(adj_mat)  # n=1
     for i in range(2, v):
         # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
-        adj_powers.append(np.linalg.matrix_power(adj_mat, i))
-
-    # Summing all possible paths from vertex vᵢ to vⱼ with n hops, where
-    # n ∈ {1, 2, ... v-1}
-    paths_sum = np.abs(np.sum(np.array(adj_powers), axis=0))
+        paths_sum += np.linalg.matrix_power(adj_mat, i)
 
     # Check if atlest one path exists between vertices vᵢ and vⱼ with n hops,
     # ∀ i, j ∈ {1, 2, ... v}, and ∀ n ∈ {1, 2, ... v-1}
-    path_bool = np.array(paths_sum, dtype=bool)
+    path_bool = np.array(np.abs(paths_sum), dtype=bool)
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
 
-    print("Sum of Adj. powers:\n", np.sum(np.array(adj_powers), axis=0))
+    print("Sum of Adj. powers:\n", np.abs(paths_sum))
 
     # If there does not exists a path between any vertex pair {vᵢ, vⱼ}, then the graph is
     # not traversable
