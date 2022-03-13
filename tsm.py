@@ -69,7 +69,7 @@ def validate_graph(X, v):
 
     # Check if atlest one path exists between vertices vᵢ and vⱼ with any hop of length n,
     # ∀ i, j ∈ {1, 2, ..., |V|}, and ∀ n ∈ {1, 2, ..., |V|-1}
-    path_bool = np.array(np.abs(paths_sum), dtype=bool)
+    path_bool = np.array(np.rint(np.abs(paths_sum)), dtype=bool)
     np.fill_diagonal(path_bool, True)
     path_exists = np.logical_or(path_bool, path_bool.T)
 
@@ -171,7 +171,7 @@ def main(argv):
         if val['solutions'] is None:
             if start_city is not None and start_city not in valid_start_cities:
                 print(("It is not possible to visit all the cities by starting the journey from " +
-                      "city %d") % v)
+                      "city %d") % start_city)
                 print("For the provided graph, valid starting city/cities is/are: ",
                       valid_start_cities)
                 return
