@@ -182,8 +182,12 @@ def main(argv):
 
             path, trip_cost = solve_tsm_problem(X, path_mat, start_city, debugger)
 
-            print(','.join(str(p) for p in path), "\n")
-            print(trip_cost)
+            if len(path) == 0 and trip_cost is None:
+                print(("It is not possible to visit all the cities by starting the journey from " +
+                      "city %d") % start_city)
+            else:
+                print(','.join(str(p) for p in path), "\n")
+                print(trip_cost)
         else:
             for sol in val['solutions']:
                 test_solutions(X, v, path_mat, k, start_city=sol[0], optimal_path=sol[1],
