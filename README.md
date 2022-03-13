@@ -42,6 +42,8 @@ Project Organization
 
     ├── README.md          <- The README file for end users.
     │
+    ├── requirements.txt   <- The file containing required python packages to be installed.
+    │
     ├── tsm.py             <- The main project file containing all the user interface, input validation, and most of the boilerplate code.
     │
     ├── dp.py              <- Contains the DP (Dynamic Programming) class, and the core DP solution for the TSM problem.
