@@ -31,7 +31,9 @@ class DP(object):
         # List of cities the journey can start from
         if start_city is None:
             self._start_cities = list(range(self._v))
-        else:
+        elif type(start_city) is list:
+            self._start_cities = (np.array(start_city, dtype=int) - 1).tolist()
+        else:  # int
             self._start_cities = [start_city - 1]
 
         # A counter for number of computations - For debugging purpose

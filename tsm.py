@@ -156,7 +156,7 @@ def main(argv):
             print("Nonviable input")
             return
 
-        if val['solutions'] is None:
+        if val['solutions'] is None or start_city is not None or time:
             if start_city is not None and start_city not in valid_start_cities:
                 print(("It is not possible to visit all the cities by starting the journey from " +
                       "city %d") % start_city)
@@ -168,7 +168,8 @@ def main(argv):
                 # Plot the graph for visualization
                 plot_graph_network(X, v, t=10)
 
-            path, trip_cost = solve_tsm_problem(X, path_mat, start_city, debugger)
+            path, trip_cost = solve_tsm_problem(X, path_mat, (valid_start_cities if start_city is
+                                                              None else start_city), debugger)
 
             if len(path) == 0 and trip_cost is None:
                 print(("It is not possible to visit all the cities by starting the journey from " +
