@@ -67,7 +67,7 @@ def validate_graph(X, v):
             # No. of unique paths from vertex vᵢ to vⱼ with exactly n hops = (Adj)ⁿ
             paths_sum += np.linalg.matrix_power(adj_mat, i)
 
-    # Check if atlest one path exists between vertices vᵢ and vⱼ with any hop of length n,
+    # Check if atlest one path exists between vertices vᵢ and vⱼ with an hop of any length n,
     # ∀ i, j ∈ {1, 2, ..., |V|}, and ∀ n ∈ {1, 2, ..., |V|-1}
     path_bool = np.array(np.rint(np.abs(paths_sum)), dtype=bool)
     np.fill_diagonal(path_bool, True)
@@ -78,24 +78,12 @@ def validate_graph(X, v):
     if not np.all(path_exists):
         return False, [], np.empty(0)
     else:
-        # Find the list of possible cities from where the journey can originate
-        zero_cols = np.array(np.abs(np.sum(paths_sum, axis=0)) > 0, dtype=int)
-        zero_rows = np.array(np.abs(np.sum(paths_sum, axis=1)) > 0, dtype=int)
-
-        if np.sum(zero_cols) < v:
-            # In the path_matrix, if there exists a column Cᵢ = [0, 0, ..., 0]ᵀ, then vertex vᵢ
-            # has no incoming edges, so the journey can only start from vertex vᵢ
-            ind = np.argwhere(zero_cols == 0).flatten()
-            return True, [ind[0] + 1], path_bool
-        elif np.sum(zero_rows) < v:
-            # In the path_matrix, if there exists a row Rᵢ = [0, 0, ..., 0], then vertex vᵢ
-            # has no outgoing edges, so the journey can start from any vertex vⱼ, where j≠i
-            ind = np.argwhere(zero_rows == 0).flatten()
-            possible_cities = list(range(1, (v + 1)))
-            possible_cities.remove(ind[0] + 1)
-            return True, possible_cities, path_bool
-
-    return True, list(range(1, (v + 1))), path_bool
+        # Find the list of possible cities from where the journey can originate:
+        # Possible starting cities are indices of rows of the path matrix, where a connection to
+        # every city exists
+        possible_cities = \
+            np.argwhere(np.array(np.all(path_bool, axis=-1), dtype=int) == 1).flatten()
+        return True, (possible_cities + 1).tolist(), path_bool
 
 
 def solve_tsm_problem(X, path_mat, start_city=None, debugger=False):

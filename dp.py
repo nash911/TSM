@@ -178,6 +178,10 @@ class DP(object):
             print("Number of computations: ", self._evaluation_counter)
             print("Analytical calculated for a connected graph: ", analytical_eval_counts)
 
+            # Check if each city is visited atleast once
+            np.testing.assert_array_equal(list(set(range(self._v))),
+                                          list(set(paths[cheapest_trip])))
+
             end_time = time.time()
             print("Wall Time: %.2f(s)" % (end_time - start_time))
             print()
