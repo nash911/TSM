@@ -7,7 +7,7 @@ from utils import generate_adjacency_matrix
 
 class DP(object):
     def __init__(self, X, path_mat, start_city=None):
-        # Set the graph matrix X, by indicating a infinite cost for city pair {cᵢ, cⱼ} for which a
+        # Set the graph matrix X, by indicating an infinite cost for city pair {cᵢ, cⱼ} for which a
         # direct path of travel does not exist
         self._X = np.where(X >= 0, X, np.inf)
 
@@ -21,7 +21,7 @@ class DP(object):
         # Remove self edges from the adjacency matrix
         np.fill_diagonal(self._adj_mat, False)
 
-        # A boolean map as a 2D matrix, indicationg if a path of any length exists between each
+        # A boolean map as a 2D matrix, indicating if a path of any length exists between each
         # city pairs {cᵢ, cⱼ}, ∀ i, j ∈ {1, 2, ..., |V|}.
         self._path_mat = path_mat
 
@@ -59,6 +59,7 @@ class DP(object):
 
     def optimal_path(self, source, dest, end=None):
         if source == end:
+            # Has reached the target end-city (while retracing path between cities cᵢ --> cⱼ)
             self._evaluation_counter += 1
             return 0, [end]
         elif len(dest) == 0:

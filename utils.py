@@ -28,7 +28,7 @@ def extract_graph_data(input_path, start_city=None):
         print("Error: Invalid input path: %s. Please provide a valid file/dir path." % input_path)
         sys.exit(1)
 
-    # Create a directory with each item associated with a single input file, containing graph data,
+    # Create a dictionary with each item associated with a single input file, containing graph data,
     # and known optimal solutions, if any.
     input_files_dict = OrderedDict()
     for file in input_files:
